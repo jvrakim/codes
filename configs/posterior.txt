@@ -1,5 +1,5 @@
 --data_path
-/home/joao/auger/dataset/splited
+/home/joao/auger/codes/data/processed
 --workers
 15
 --batch_size
@@ -11,7 +11,7 @@
 --epochs
 150
 --save
-/home/joao/auger/networks
+/home/joao/auger/codes/results/networks
 --seed
 0
 --grad_clip

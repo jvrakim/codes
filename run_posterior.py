@@ -232,7 +232,7 @@ def main():
         "targets": targets,
     }
 
-    torch.save(alphas, os.path.join(run_filepath, "alphas.pt"))
+    torch.save(alphas, os.path.join(run_filepath, "test_results.pt"))
 
 
 if __name__ == "__main__":

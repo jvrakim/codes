@@ -18,6 +18,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
 from src.training_methods.ensemble import save_utils
+from src.common.base_saver import check_for_exps_folders
 from src.training_methods.ensemble import train_utils
 from src.common import data_utils
 from src.common import print_utils
@@ -83,7 +84,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-exp_num = save_utils.check_for_exps_folders(args.save, "ensemble_run")
+exp_num = check_for_exps_folders(args.save, "ensemble_run")
 run_filepath = os.path.join(args.save, exp_num)
 
 os.makedirs(run_filepath, exist_ok=True)
@@ -253,7 +254,7 @@ def main():
         "individual_probs": individual_probs,
     }
 
-    torch.save(probs, os.path.join(run_filepath, "probs.pt"))
+    torch.save(probs, os.path.join(run_filepath, "test_results.pt"))
 
 
 if __name__ == "__main__":

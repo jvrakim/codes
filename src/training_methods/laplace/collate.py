@@ -39,8 +39,9 @@ def custom_collate_fn(
         fc_batch = torch.stack([sample["fc_input"] for sample in batch])
         cnn_batch = torch.stack([sample["cnn_input"] for sample in batch])
         target_batch = torch.stack([sample["target"] for sample in batch])
+        IDs = torch.stack([sample["ID"] for sample in batch])
 
         multi_input = data_utils.MultiInput(
-            fc_input=fc_batch, cnn_input=cnn_batch
+            fc_input = fc_batch, cnn_input = cnn_batch
         )
-        return multi_input, target_batch
+        return multi_input, target_batch, IDs

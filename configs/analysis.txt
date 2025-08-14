@@ -1,0 +1,4 @@
+--data_pat
+/home/joao/auger/codes/data/processed
+--results_path
+/home/joao/auger/codes/results/graphs

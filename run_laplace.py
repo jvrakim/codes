@@ -233,20 +233,20 @@ def main():
     path = os.path.join(run_filepath, "model_best.pt")
     checkpoint = torch.load(path, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
-
+    
     la = Laplace(
         model,
         "classification",
-        subset_of_weights="last_layer",
-        hessian_structure="full",
+        subset_of_weights = "last_layer",
+        hessian_structure = "full",
     )
     la.fit(train_loader)
 
     la.optimize_prior_precision(
-        method="gridsearch",
-        pred_type="glm",
-        link_approx="mc",
-        val_loader=val_loader,
+        method = "gridsearch",
+        pred_type = "glm",
+        link_approx = "mc",
+        val_loader = val_loader,
     )
 
     torch.save(
@@ -264,19 +264,15 @@ def main():
     preds = []
     targets = []
     ids = []
-    for sample in test_loader:
-        x = (sample["fc_input"], sample["cnn_input"])
-        y = sample["target"]
-        id = sample["ID"]
-
-        x = x.to(device=device)
-        y = y.to(device=device)
+    for input, target, id in test_loader:
+        input = input.to(device=device)
+        target = target.to(device=device)
 
         ids.append(id)
         preds.append(
-            la.predictive_samples(x, pred_type="glm", n_samples=10000)
+            la.predictive_samples(input, pred_type="glm", n_samples=10000)
         )
-        targets.append(y)
+        targets.append(target)
 
     predictions = torch.cat(preds, dim=1)
     targets = torch.cat(targets)
@@ -287,7 +283,7 @@ def main():
         "targets": targets,
     }
 
-    torch.save(samples, os.path.join(run_filepath, "samples.pt"))
+    torch.save(samples, os.path.join(run_filepath, "test_results.pt"))
 
     writer.close()
 

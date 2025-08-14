@@ -40,6 +40,22 @@ from src.common.base_model import Network
 # For plotting
 import matplotlib.pyplot as plt
 
+parser = argparse.ArgumentParser(fromfile_prefix_chars="@")
+
+parser.add_argument(
+        "--data_path",
+        type=str,
+        default="/home/user/data/processed",
+        help="path to datasets",
+    )
+parser.add_argument(
+        "--results_path",
+        type=str,
+        default="/home/user/results",
+        help="path to save images",
+    )
+args = parser.parse_args()
+
 
 def run_laplace_analysis(
     device: torch.device, run_filepath: str, data_path: str, results_path: str
@@ -99,21 +115,25 @@ def run_laplace_analysis(
         val_loader=val_loader,
     )
 
-    predictions = []
+    preds = []
     targets = []
-    for x, y in test_loader:
-        x = x.to(device=device)
-        y = y.to(device=device)
-        predictions.append(
-            la.predictive_samples(x, pred_type="glm", n_samples=10000)
-        )
-        targets.append(y)
+    ids = []
+    for input, target, id in test_loader:
+        input = input.to(device=device)
+        target = target.to(device=device)
 
-    samples = torch.cat(predictions, dim=1)
+        ids.append(id)
+        preds.append(
+            la.predictive_samples(input, pred_type="glm", n_samples=10000)
+        )
+        targets.append(target)
+
+    predictions = torch.cat(preds, dim=1)
     targets = torch.cat(targets)
 
+
     la_metric = LaplaceMetric(device)
-    laplace_results = la_metric.get_metrics(samples=samples, target=targets)
+    laplace_results = la_metric.get_metrics(samples=predictions, target=targets)
 
     laplace_analyzer_obj = LaplaceAnalyzer(laplace_results)
     print("Laplace Analysis Complete.")
@@ -394,26 +414,12 @@ def plot_combined_results(analyzers: Dict[str, Any], results_path: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--data_path",
-        type=str,
-        default="/home/user/data/processed",
-        help="path to datasets",
-    )
-    parser.add_argument(
-        "--results_path",
-        type=str,
-        default="/home/user/results",
-        help="path to save images",
-    )
-    args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    laplace_run_filepath = "/home/user/networks/laplace_run01"
-    ensemble_run_filepath = "/home/user/networks/ensemble_run01"
-    posterior_run_filepath = "/home/user/networks/posterior_run02"
+    laplace_run_filepath = "/home/joao/auger/codes/results/networks/laplace_run01"
+    ensemble_run_filepath = "/home/joao/auger/codes/results/networks/ensemble_run01"
+    posterior_run_filepath = "/home/joao/auger/codes/results/networks/posterior_run02"
 
     analyzers = {}
 

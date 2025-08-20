@@ -22,4 +22,8 @@ class PosteriorAnalyzer(BaseAnalyzer):
     """
 
     def __init__(self, results):
-        super().__init__(results)
+        super().__init__(
+            results,
+            confidence_key="confidence",
+            correct_pred_key="correct_predictions",
+        )

@@ -19,12 +19,22 @@ class BaseAnalyzer:
 
     Args:
         results (dict): A dictionary containing the model's predictions and
-            other relevant information. It should contain the keys
-            'confidence' and 'correct_predictions'.
+            other relevant information.
+        confidence_key (str): The key for the confidence values in the results
+            dictionary.
+        correct_pred_key (str): The key for the correct prediction flags in
+            the results dictionary.
     """
 
-    def __init__(self, results):
+    def __init__(
+        self,
+        results,
+        confidence_key="confidence",
+        correct_pred_key="correct_predictions",
+    ):
         self.results = results
+        self.confidence_key = confidence_key
+        self.correct_pred_key = correct_pred_key
 
     def get_calibration_curve(self, n_bins=15):
         """
@@ -38,8 +48,8 @@ class BaseAnalyzer:
             tuple: A tuple containing the accuracies and confidences for each
                 bin.
         """
-        confidences = self.results["confidence"].cpu().numpy()
-        correct_predictions = self.results["correct_predictions"].cpu().numpy()
+        confidences = self.results[self.confidence_key].cpu().numpy()
+        correct_predictions = self.results[self.correct_pred_key].cpu().numpy()
 
         bin_boundaries = np.linspace(0, 1, n_bins + 1)
         bin_lowers = bin_boundaries[:-1]
@@ -76,8 +86,8 @@ class BaseAnalyzer:
             tuple: A tuple containing the false positive rates, true positive
                 rates, and the area under the ROC curve.
         """
-        confidences = self.results["confidence"].cpu().numpy()
-        correct_predictions = self.results["correct_predictions"].cpu().numpy()
+        confidences = self.results[self.confidence_key].cpu().numpy()
+        correct_predictions = self.results[self.correct_pred_key].cpu().numpy()
         fpr, tpr, _ = roc_curve(correct_predictions, confidences)
         roc_auc = auc(fpr, tpr)
         return fpr, tpr, roc_auc
@@ -90,8 +100,8 @@ class BaseAnalyzer:
             tuple: A tuple containing the coverages, risks, and the area
                 under the risk-coverage curve.
         """
-        confidences = self.results["confidence"].cpu().numpy()
-        correct_predictions = self.results["correct_predictions"].cpu().numpy()
+        confidences = self.results[self.confidence_key].cpu().numpy()
+        correct_predictions = self.results[self.correct_pred_key].cpu().numpy()
 
         uncertainty = 1.0 - confidences
         sorted_idx = np.argsort(uncertainty)

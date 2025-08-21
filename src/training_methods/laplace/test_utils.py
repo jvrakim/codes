@@ -22,32 +22,17 @@ class LaplaceTester(BaseTester):
         """
         Tests the Laplace model.
         """
-        path = os.path.join(self.save_path, "model_best.pt")
+        path = os.path.join(self.save_path, "laplace_model.pt")
         checkpoint = torch.load(path, weights_only=False)
         model.load_state_dict(checkpoint["model_state_dict"])
 
         la = Laplace(
             model,
             "classification",
-            subset_of_weights="last_layer",
-            hessian_structure="full",
+            subset_of_weights = "last_layer",
+            hessian_structure = "full",
         )
-        la.fit(train_loader)
-
-        la.optimize_prior_precision(
-            method="gridsearch",
-            pred_type="glm",
-            link_approx="mc",
-            val_loader=val_loader,
-        )
-
-        torch.save(
-            {
-                "model_state_dict": model.state_dict(),
-                "laplace_state_dict": la.state_dict(),
-            },
-            os.path.join(self.save_path, "laplace_model.pt"),
-        )
+        la.load_state_dict(checkpoint["laplace_state_dict"])
 
         preds = []
         targets = []

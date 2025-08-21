@@ -85,7 +85,7 @@ parser.add_argument(
 parser.add_argument(
     "--subset_of_weights",
     type=str,
-    default="all",
+    default="last_layer",
     choices=["all", "subnetwork", "last_layer"],
     help="which weights to include in the Laplace approximation",
 )
@@ -237,8 +237,8 @@ def main():
     la = Laplace(
         model,
         "classification",
-        subset_of_weights = "last_layer",
-        hessian_structure = "full",
+        subset_of_weights = args.subset_of_weights,
+        hessian_structure = args.hessian_structure,
     )
     la.fit(train_loader)
 
@@ -260,6 +260,8 @@ def main():
         },
         os.path.join(run_filepath, "laplace_model.pt"),
     )
+
+    writer.close()
 
     preds = []
     targets = []
@@ -285,7 +287,7 @@ def main():
 
     torch.save(samples, os.path.join(run_filepath, "test_results.pt"))
 
-    writer.close()
+    
 
 
 if __name__ == "__main__":

@@ -2,7 +2,6 @@
 This module contains the tester for the ensemble method.
 """
 
-import torch
 import torch.nn.functional as F
 from torch.func import stack_module_state
 

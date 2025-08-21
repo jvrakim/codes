@@ -109,6 +109,8 @@ def get_dimensions(data_dict: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tenso
 
 def get_data_loaders(
     data_path: str,
+    training_dataset: str,
+    testing_dataset: str,
     batch_size: int,
     num_workers: int,
     num_classes: int,
@@ -122,6 +124,9 @@ def get_data_loaders(
 
     Args:
         data_path (str): The path to the folder containing the data files.
+        training_dataset (str): The preffix for the training and validation
+            data files.
+        testing_dataset (str): The preffix for the testing data files.
         batch_size (int): The batch size for the data loaders.
         num_workers (int): The number of workers for data loading.
         num_classes (int): The number of classes in the dataset.
@@ -138,9 +143,14 @@ def get_data_loaders(
         tuple: A tuple containing the train, validation, and test data
             loaders, and optionally the image dimensions and class counts.
     """
-    train_path = os.path.join(data_path, "train_data.pt")
-    val_path = os.path.join(data_path, "val_data.pt")
-    test_path = os.path.join(data_path, "test_data.pt")
+
+    train_name = training_dataset + "_train.pt"
+    val_name = training_dataset + "_val.pt"
+    test_name = testing_dataset + "_test.pt"
+
+    train_path = os.path.join(data_path, train_name)
+    val_path = os.path.join(data_path, val_name)
+    test_path = os.path.join(data_path, test_name)
 
     train_dict = torch.load(train_path, weights_only=False)
     val_dict = torch.load(val_path, weights_only=False)

@@ -17,13 +17,12 @@ import torch.backends.cudnn as cudnn
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 
-from src.training_methods.posterior.parser_utils import PosteriorParser
-from src.training_methods.posterior.posterior_network import PosteriorNetwork
-from src.common import base_saver as save_utils
-from src.training_methods.posterior import train_utils
 from src.common import data_utils
 from src.common import print_utils
-
+from src.common import base_saver as save_utils
+from src.training_methods.posterior import train_utils
+from src.training_methods.posterior.parser_utils import PosteriorParser
+from src.training_methods.posterior.posterior_network import PosteriorNetwork
 
 def train(args):
     """
@@ -61,6 +60,7 @@ def train(args):
         data_utils.get_data_loaders(
             data_path=args.path_to_data,
             training_dataset=args.training_dataset,
+            testing_dataset=args.test_dataset,
             batch_size=args.batch_size,
             num_workers=args.workers,
             num_classes=args.classes,
@@ -193,7 +193,8 @@ def test(args):
     _, _, test_loader, (image_C, image_H, image_W), N = (
         data_utils.get_data_loaders(
             data_path=args.path_to_data,
-            test_dataset=args.test_dataset,
+            training_dataset=args.training_dataset,
+            testing_dataset=args.test_dataset,
             batch_size=args.batch_size,
             num_workers=args.workers,
             num_classes=args.classes,

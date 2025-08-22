@@ -14,17 +14,17 @@ import numpy as np
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
+from laplace import Laplace
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
-from laplace import Laplace
 
-from src.training_methods.laplace.parser_utils import LaplaceParser
-from src.training_methods.laplace import model as laplace_model_module
-from src.training_methods.laplace import collate
-from src.training_methods.laplace import train_utils
 from src.common import data_utils
 from src.common import print_utils
 from src.common import base_saver as save_utils
+from src.training_methods.laplace import collate
+from src.training_methods.laplace import train_utils
+from src.training_methods.laplace.parser_utils import LaplaceParser
+from src.training_methods.laplace import model as laplace_model_module
 
 
 def train(args):
@@ -63,6 +63,7 @@ def train(args):
         data_utils.get_data_loaders(
             data_path=args.path_to_data,
             training_dataset=args.training_dataset,
+            testing_dataset=args.test_dataset,
             batch_size=args.batch_size,
             num_workers=args.workers,
             num_classes=args.classes,
@@ -218,7 +219,8 @@ def test(args):
     _, _, test_loader, (image_C, image_H, image_W) = (
         data_utils.get_data_loaders(
             data_path=args.path_to_data,
-            test_dataset=args.test_dataset,
+            training_dataset=args.training_dataset,
+            testing_dataset=args.test_dataset,
             batch_size=args.batch_size,
             num_workers=args.workers,
             num_classes=args.classes,

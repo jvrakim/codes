@@ -25,12 +25,6 @@ class LaplaceParser(BaseExperimentParser):
         Adds Laplace-specific arguments to the parser.
         """
         self.parser.add_argument(
-            "--hessian_freq",
-            type=int,
-            default=100,
-            help="The frequency of Hessian computation.",
-        )
-        self.parser.add_argument(
             "--subset_of_weights",
             type=str,
             default="last_layer",

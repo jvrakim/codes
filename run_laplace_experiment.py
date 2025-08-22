@@ -26,8 +26,80 @@ from src.training_methods.laplace import train_utils
 from src.training_methods.laplace.parser_utils import LaplaceParser
 from src.training_methods.laplace import model as laplace_model_module
 
+def setup_experiment(args):
+    """
+    Set up the experiment environment.
 
-def train(args):
+    This function prepares the data loaders, device, model, and criterion
+    based on the experiment type and objective.
+
+    Args:
+        args (argparse.Namespace): Command-line arguments.
+
+    Returns:
+        dict: A dictionary containing the setup components:
+              'device', 'train_loader', 'val_loader', 'test_loader',
+              'model', 'criterion', and other experiment-specific data.
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    dataloader_kwargs = {
+        "return_dimensions": True,
+        "return_tuple": True,
+        "collate_fn": collate.custom_collate_fn
+    }
+    
+    (
+        train_loader,
+        val_loader,
+        test_loader,
+        *other_info,
+    ) = data_utils.get_data_loaders(
+        data_path=args.path_to_data,
+        training_dataset=args.training_dataset,
+        testing_dataset=args.test_dataset,
+        batch_size=args.batch_size,
+        num_workers=args.workers,
+        num_classes=args.classes,
+        **dataloader_kwargs,
+    )
+
+    image_dims = other_info[0]
+    image_C, image_H, image_W = image_dims
+
+    results = {
+        "device": device,
+        "train_loader": None,
+        "val_loader": None,
+        "test_loader": None,
+        "model": None,
+        "criterion": None,
+    }
+
+    if args.mode == "train":
+        results["train_loader"] = train_loader
+        results["val_loader"] = val_loader
+    elif args.mode == "test":
+        results["test_loader"] = test_loader
+    elif args.mode == "full":
+        results["train_loader"] = train_loader
+        results["val_loader"] = val_loader
+        results["test_loader"] = test_loader
+
+    
+    results["model"] = laplace_model_module.LaplaceModel(
+        C_in=image_C,
+        C=6,
+        H_in=image_H,
+        W_in=image_W,
+        num_classes=args.classes,
+    ).to(device)
+    
+    results["criterion"] = nn.CrossEntropyLoss().to(device)
+
+    return results
+
+def train(args, setup):
     """
     Trains a model and applies the Laplace approximation.
 
@@ -59,30 +131,11 @@ def train(args):
 
     writer = SummaryWriter(log_dir=logs_path)
 
-    train_loader, val_loader, _, (image_C, image_H, image_W) = (
-        data_utils.get_data_loaders(
-            data_path=args.path_to_data,
-            training_dataset=args.training_dataset,
-            testing_dataset=args.test_dataset,
-            batch_size=args.batch_size,
-            num_workers=args.workers,
-            num_classes=args.classes,
-            return_dimensions=True,
-            return_tuple=True,
-            collate_fn=collate.custom_collate_fn,
-        )
-    )
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    criterion = nn.CrossEntropyLoss().to(device)
-
-    model = laplace_model_module.LaplaceModel(
-        C_in=image_C,
-        C=6,
-        H_in=image_H,
-        W_in=image_W,
-        num_classes=args.classes,
-    ).to(device)
+    device = setup["device"]
+    train_loader = setup["train_loader"]
+    val_loader = setup["val_loader"]
+    model = setup["model"]
+    criterion = setup["criterion"]
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -199,7 +252,7 @@ def train(args):
     print(f"Finished training. Best model saved in {best_model_path}")
 
 
-def test(args):
+def test(args, setup):
     """
     Tests a Laplace-approximated model.
 
@@ -216,29 +269,9 @@ def test(args):
     test_path = os.path.join(args.experiment_path, test_folder_name)
     os.makedirs(test_path, exist_ok=True)
 
-    _, _, test_loader, (image_C, image_H, image_W) = (
-        data_utils.get_data_loaders(
-            data_path=args.path_to_data,
-            training_dataset=args.training_dataset,
-            testing_dataset=args.test_dataset,
-            batch_size=args.batch_size,
-            num_workers=args.workers,
-            num_classes=args.classes,
-            return_dimensions=True,
-            return_tuple=True,
-            collate_fn=collate.custom_collate_fn,
-        )
-    )
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = laplace_model_module.LaplaceModel(
-        C_in=image_C,
-        C=6,
-        H_in=image_H,
-        W_in=image_W,
-        num_classes=args.classes,
-    ).to(device)
+    device = setup["device"]
+    test_loader = setup["test_loader"]
+    model = setup["model"]
 
     path = os.path.join(best_model_path, "laplace_model.pt")
     checkpoint = torch.load(path, weights_only=False)
@@ -287,14 +320,16 @@ def main():
     """
     parser = LaplaceParser()
     args = parser.parse_args()
+    
+    setup = setup_experiment(args)
 
     if args.mode == "train":
-        train(args)
+        train(args, setup)
     elif args.mode == "test":
-        test(args)
+        test(args, setup)
     elif args.mode == "full":
-        train(args)
-        test(args)
+        train(args, setup)
+        test(args, setup)
     else:
         print(f"Unknown mode: {args.mode}")
         sys.exit(1)

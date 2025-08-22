@@ -24,7 +24,86 @@ from src.training_methods.posterior import train_utils
 from src.training_methods.posterior.parser_utils import PosteriorParser
 from src.training_methods.posterior.posterior_network import PosteriorNetwork
 
-def train(args):
+def setup_experiment(args):
+    """
+    Set up the experiment environment.
+
+    This function prepares the data loaders, device, model, and criterion
+    based on the experiment type and objective.
+
+    Args:
+        args (argparse.Namespace): Command-line arguments.
+
+    Returns:
+        dict: A dictionary containing the setup components:
+              'device', 'train_loader', 'val_loader', 'test_loader',
+              'model', 'criterion', and other experiment-specific data.
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    dataloader_kwargs = {
+        "return_dimensions": True,
+        "return_class_counts": True
+    }
+    
+    (
+        train_loader,
+        val_loader,
+        test_loader,
+        *other_info,
+    ) = data_utils.get_data_loaders(
+        data_path=args.path_to_data,
+        training_dataset=args.training_dataset,
+        testing_dataset=args.test_dataset,
+        batch_size=args.batch_size,
+        num_workers=args.workers,
+        num_classes=args.classes,
+        **dataloader_kwargs,
+    )
+
+    image_dims = other_info[0]
+    image_C, image_H, image_W = image_dims
+
+    results = {
+        "device": device,
+        "train_loader": None,
+        "val_loader": None,
+        "test_loader": None,
+        "model": None,
+        "criterion": None,
+    }
+
+    if args.mode == "train":
+        results["train_loader"] = train_loader
+        results["val_loader"] = val_loader
+    elif args.mode == "test":
+        results["test_loader"] = test_loader
+    elif args.mode == "full":
+        results["train_loader"] = train_loader
+        results["val_loader"] = val_loader
+        results["test_loader"] = test_loader
+
+    
+    N = other_info[1]
+
+    results["model"] = PosteriorNetwork(
+            N=N,
+            C_in=image_C,
+            H_in=image_H,
+            W_in=image_W,
+            C=6,
+            output_dim=args.classes,
+            latent_dim=4,
+            n_density=4,
+            seed=args.seed,
+        ).to(device)
+    
+    results["criterion"] = train_utils.uce_loss
+    results["N"] = N
+
+    return results
+
+def train(args, setup):
     """
     Trains a posterior network model.
 
@@ -56,34 +135,12 @@ def train(args):
 
     writer = SummaryWriter(log_dir=logs_path)
 
-    train_loader, val_loader, _, (image_C, image_H, image_W), N = (
-        data_utils.get_data_loaders(
-            data_path=args.path_to_data,
-            training_dataset=args.training_dataset,
-            testing_dataset=args.test_dataset,
-            batch_size=args.batch_size,
-            num_workers=args.workers,
-            num_classes=args.classes,
-            return_dimensions=True,
-            return_class_counts=True,
-        )
-    )
+    device = setup["device"]
+    train_loader = setup["train_loader"]
+    val_loader = setup["val_loader"]
+    model = setup["model"]
+    criterion = setup["criterion"]
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = PosteriorNetwork(
-        N=N,
-        C_in=image_C,
-        H_in=image_H,
-        W_in=image_W,
-        C=6,
-        output_dim=args.classes,
-        latent_dim=4,
-        n_density=4,
-        seed=args.seed,
-    ).to(device)
-
-    criterion = train_utils.uce_loss
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
 
     trainer = train_utils.PosteriorTrainer(device, args.classes, args.regr)
@@ -173,7 +230,7 @@ def train(args):
     print(f"Finished training. Best model saved in {best_model_path}")
 
 
-def test(args):
+def test(args, setup):
     """
     Tests a posterior network model.
 
@@ -190,32 +247,10 @@ def test(args):
     test_path = os.path.join(args.experiment_path, test_folder_name)
     os.makedirs(test_path, exist_ok=True)
 
-    _, _, test_loader, (image_C, image_H, image_W), N = (
-        data_utils.get_data_loaders(
-            data_path=args.path_to_data,
-            training_dataset=args.training_dataset,
-            testing_dataset=args.test_dataset,
-            batch_size=args.batch_size,
-            num_workers=args.workers,
-            num_classes=args.classes,
-            return_dimensions=True,
-            return_class_counts=True,
-        )
-    )
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = PosteriorNetwork(
-        N=N,
-        C_in=image_C,
-        H_in=image_H,
-        W_in=image_W,
-        C=6,
-        output_dim=args.classes,
-        latent_dim=4,
-        n_density=4,
-        seed=args.seed,
-    ).to(device)
+    device = setup["device"]
+    test_loader = setup["test_loader"]
+    model = setup["model"]
+    criterion = setup["criterion"]
 
     path = os.path.join(best_model_path, "model_best.pt")
     checkpoint = torch.load(path, weights_only=False)
@@ -249,13 +284,15 @@ def main():
     parser = PosteriorParser()
     args = parser.parse_args()
 
+    setup = setup_experiment(args)
+
     if args.mode == "train":
-        train(args)
+        train(args, setup)
     elif args.mode == "test":
-        test(args)
+        test(args, setup)
     elif args.mode == "full":
-        train(args)
-        test(args)
+        train(args, setup)
+        test(args, setup)
     else:
         print(f"Unknown mode: {args.mode}")
         sys.exit(1)

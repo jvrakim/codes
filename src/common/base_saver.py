@@ -304,7 +304,7 @@ def check_for_exps_folders(directory: str, base: str) -> str:
     """
     counter = 1
     while True:
-        candidate = f"{base}{counter:02d}"
+        candidate = f"{base}_{counter:02d}"
         if not os.path.exists(os.path.join(directory, candidate)):
             return candidate
         counter += 1

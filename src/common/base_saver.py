@@ -287,24 +287,3 @@ class Manager:
                 val_losses,
                 val_accs,
             )
-
-
-def check_for_exps_folders(directory: str, base: str) -> str:
-    """
-    Returns a unique directory name in the specified directory.
-
-    Args:
-        directory (str): The path to the folder where the new directory will
-            be created.
-        base (str): The base name for the new directory (e.g., "run").
-
-    Returns:
-        str: A unique directory name in the format "baseXX", where XX is a
-            two-digit number.
-    """
-    counter = 1
-    while True:
-        candidate = f"{base}_{counter:02d}"
-        if not os.path.exists(os.path.join(directory, candidate)):
-            return candidate
-        counter += 1

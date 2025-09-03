@@ -25,13 +25,32 @@ import polars as pl
 
 from tqdm import tqdm
 
-from codes.src.common.base_saver import check_for_exps_folders
-
 import ROOT
 ROOT.gROOT.SetBatch(True)
 
 # The path to the library is depends on your computer, so the code WILL NOT RUN if you do not change this path.
 LIB_PATH = "/home/joao/auger/software/Install/offline/4.0.1-icrc2023-prod1/lib/libRecEventKG.so"
+
+def check_for_exps_folders(directory: Path, base: str) -> str:
+    """
+    Returns a unique directory name in the specified directory.
+
+    Args:
+        directory (str): The path to the folder where the new directory will
+            be created.
+        base (str): The base name for the new directory (e.g., "run").
+
+    Returns:
+        str: A unique directory name in the format "baseXX", where XX is a
+            two-digit number.
+    """
+    counter = 1
+
+    while True:
+        candidate = f"{base}_{counter:02d}"
+        if not (directory / candidate).exists():
+            return candidate
+        counter += 1
 
 def parse_arguments():
     """Parses command-line arguments.
@@ -420,7 +439,7 @@ def main():
     name = "_".join(name)
 
     save_path = file_path.parent.parent / "iterim"
-    name = check_for_exps_folders(str(save_path), name)
+    name = check_for_exps_folders(save_path, name)
 
     print("Loading ROOT file")
     event_conditions, station_conditions = load_data(file_path)
